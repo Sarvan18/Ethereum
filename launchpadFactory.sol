@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
-import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 /**
  * @dev External interface of AccessControl declared to support ERC-165 detection.
@@ -219,6 +218,307 @@ interface IERC20 {
 }
 
 /**
+ * @title IERC1363
+ * @dev Interface of the ERC-1363 standard as defined in the https://eips.ethereum.org/EIPS/eip-1363[ERC-1363].
+ *
+ * Defines an extension interface for ERC-20 tokens that supports executing code on a recipient contract
+ * after `transfer` or `transferFrom`, or code on a spender contract after `approve`, in a single transaction.
+ */
+interface IERC1363 is IERC20, IERC165 {
+    /*
+     * Note: the ERC-165 identifier for this interface is 0xb0202a11.
+     * 0xb0202a11 ===
+     *   bytes4(keccak256('transferAndCall(address,uint256)')) ^
+     *   bytes4(keccak256('transferAndCall(address,uint256,bytes)')) ^
+     *   bytes4(keccak256('transferFromAndCall(address,address,uint256)')) ^
+     *   bytes4(keccak256('transferFromAndCall(address,address,uint256,bytes)')) ^
+     *   bytes4(keccak256('approveAndCall(address,uint256)')) ^
+     *   bytes4(keccak256('approveAndCall(address,uint256,bytes)'))
+     */
+
+    /**
+     * @dev Moves a `value` amount of tokens from the caller's account to `to`
+     * and then calls {IERC1363Receiver-onTransferReceived} on `to`.
+     * @param to The address which you want to transfer to.
+     * @param value The amount of tokens to be transferred.
+     * @return A boolean value indicating whether the operation succeeded unless throwing.
+     */
+    function transferAndCall(address to, uint256 value) external returns (bool);
+
+    /**
+     * @dev Moves a `value` amount of tokens from the caller's account to `to`
+     * and then calls {IERC1363Receiver-onTransferReceived} on `to`.
+     * @param to The address which you want to transfer to.
+     * @param value The amount of tokens to be transferred.
+     * @param data Additional data with no specified format, sent in call to `to`.
+     * @return A boolean value indicating whether the operation succeeded unless throwing.
+     */
+    function transferAndCall(
+        address to,
+        uint256 value,
+        bytes calldata data
+    ) external returns (bool);
+
+    /**
+     * @dev Moves a `value` amount of tokens from `from` to `to` using the allowance mechanism
+     * and then calls {IERC1363Receiver-onTransferReceived} on `to`.
+     * @param from The address which you want to send tokens from.
+     * @param to The address which you want to transfer to.
+     * @param value The amount of tokens to be transferred.
+     * @return A boolean value indicating whether the operation succeeded unless throwing.
+     */
+    function transferFromAndCall(
+        address from,
+        address to,
+        uint256 value
+    ) external returns (bool);
+
+    /**
+     * @dev Moves a `value` amount of tokens from `from` to `to` using the allowance mechanism
+     * and then calls {IERC1363Receiver-onTransferReceived} on `to`.
+     * @param from The address which you want to send tokens from.
+     * @param to The address which you want to transfer to.
+     * @param value The amount of tokens to be transferred.
+     * @param data Additional data with no specified format, sent in call to `to`.
+     * @return A boolean value indicating whether the operation succeeded unless throwing.
+     */
+    function transferFromAndCall(
+        address from,
+        address to,
+        uint256 value,
+        bytes calldata data
+    ) external returns (bool);
+
+    /**
+     * @dev Sets a `value` amount of tokens as the allowance of `spender` over the
+     * caller's tokens and then calls {IERC1363Spender-onApprovalReceived} on `spender`.
+     * @param spender The address which will spend the funds.
+     * @param value The amount of tokens to be spent.
+     * @return A boolean value indicating whether the operation succeeded unless throwing.
+     */
+    function approveAndCall(address spender, uint256 value)
+        external
+        returns (bool);
+
+    /**
+     * @dev Sets a `value` amount of tokens as the allowance of `spender` over the
+     * caller's tokens and then calls {IERC1363Spender-onApprovalReceived} on `spender`.
+     * @param spender The address which will spend the funds.
+     * @param value The amount of tokens to be spent.
+     * @param data Additional data with no specified format, sent in call to `spender`.
+     * @return A boolean value indicating whether the operation succeeded unless throwing.
+     */
+    function approveAndCall(
+        address spender,
+        uint256 value,
+        bytes calldata data
+    ) external returns (bool);
+}
+
+interface AggregatorV3Interface {
+    function decimals() external view returns (uint8);
+
+    function description() external view returns (string memory);
+
+    function version() external view returns (uint256);
+
+    function getRoundData(uint80 _roundId)
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        );
+
+    function latestRoundData()
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        );
+}
+
+interface IPancakeRouter01 {
+    function factory() external pure returns (address);
+
+    function WETH() external pure returns (address);
+
+    function addLiquidity(
+        address tokenA,
+        address tokenB,
+        uint256 amountADesired,
+        uint256 amountBDesired,
+        uint256 amountAMin,
+        uint256 amountBMin,
+        address to,
+        uint256 deadline
+    )
+        external
+        returns (
+            uint256 amountA,
+            uint256 amountB,
+            uint256 liquidity
+        );
+
+    function addLiquidityETH(
+        address token,
+        uint256 amountTokenDesired,
+        uint256 amountTokenMin,
+        uint256 amountETHMin,
+        address to,
+        uint256 deadline
+    )
+        external
+        payable
+        returns (
+            uint256 amountToken,
+            uint256 amountETH,
+            uint256 liquidity
+        );
+
+    function removeLiquidity(
+        address tokenA,
+        address tokenB,
+        uint256 liquidity,
+        uint256 amountAMin,
+        uint256 amountBMin,
+        address to,
+        uint256 deadline
+    ) external returns (uint256 amountA, uint256 amountB);
+
+    function removeLiquidityETH(
+        address token,
+        uint256 liquidity,
+        uint256 amountTokenMin,
+        uint256 amountETHMin,
+        address to,
+        uint256 deadline
+    ) external returns (uint256 amountToken, uint256 amountETH);
+
+    function removeLiquidityWithPermit(
+        address tokenA,
+        address tokenB,
+        uint256 liquidity,
+        uint256 amountAMin,
+        uint256 amountBMin,
+        address to,
+        uint256 deadline,
+        bool approveMax,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external returns (uint256 amountA, uint256 amountB);
+
+    function removeLiquidityETHWithPermit(
+        address token,
+        uint256 liquidity,
+        uint256 amountTokenMin,
+        uint256 amountETHMin,
+        address to,
+        uint256 deadline,
+        bool approveMax,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external returns (uint256 amountToken, uint256 amountETH);
+
+    function swapExactTokensForTokens(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external returns (uint256[] memory amounts);
+
+    function swapTokensForExactTokens(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external returns (uint256[] memory amounts);
+
+    function swapExactETHForTokens(
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external payable returns (uint256[] memory amounts);
+
+    function swapTokensForExactETH(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external returns (uint256[] memory amounts);
+
+    function swapExactTokensForETH(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external returns (uint256[] memory amounts);
+
+    function swapETHForExactTokens(
+        uint256 amountOut,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external payable returns (uint256[] memory amounts);
+
+    function quote(
+        uint256 amountA,
+        uint256 reserveA,
+        uint256 reserveB
+    ) external pure returns (uint256 amountB);
+
+    function getAmountOut(
+        uint256 amountIn,
+        uint256 reserveIn,
+        uint256 reserveOut
+    ) external pure returns (uint256 amountOut);
+
+    function getAmountIn(
+        uint256 amountOut,
+        uint256 reserveIn,
+        uint256 reserveOut
+    ) external pure returns (uint256 amountIn);
+
+    function getAmountsOut(uint256 amountIn, address[] calldata path)
+        external
+        view
+        returns (uint256[] memory amounts);
+
+    function getAmountsIn(uint256 amountOut, address[] calldata path)
+        external
+        view
+        returns (uint256[] memory amounts);
+}
+
+interface ILaunchpadError {
+    error InvalidOption();
+
+    error InvalidTime();
+
+    error NotZeroValue();
+
+    error MinMaxCollapse();
+
+    error InvalidUser();
+
+    error InvalidAmount();
+}
+
+/**
  * @dev Helper to make usage of the `CREATE2` EVM opcode easier and safer.
  * `CREATE2` can be used to compute in advance the address where a smart
  * contract will be deployed, which allows for interesting new mechanisms known
@@ -301,6 +601,327 @@ library Create2 {
             mstore8(start, 0xff)
             addr := keccak256(start, 85)
         }
+    }
+}
+
+library BytesLibrary {
+    function toString(bytes32 value) internal pure returns (string memory) {
+        bytes memory alphabet = "0123456789abcdef";
+        bytes memory str = new bytes(64);
+        for (uint256 i = 0; i < 32; i++) {
+            str[i * 2] = alphabet[uint8(value[i] >> 4)];
+            str[1 + i * 2] = alphabet[uint8(value[i] & 0x0f)];
+        }
+        return string(str);
+    }
+
+    function recover(
+        bytes32 hash,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) internal pure returns (address) {
+        bytes32 fullMessage = keccak256(
+            abi.encodePacked("\x19Ethereum Signed Message:\n32", hash)
+        );
+        return ecrecover(fullMessage, v, r, s);
+    }
+}
+
+/**
+ * @title SafeERC20
+ * @dev Wrappers around ERC-20 operations that throw on failure (when the token
+ * contract returns false). Tokens that return no value (and instead revert or
+ * throw on failure) are also supported, non-reverting calls are assumed to be
+ * successful.
+ * To use this library you can add a `using SafeERC20 for IERC20;` statement to your contract,
+ * which allows you to call the safe operations as `token.safeTransfer(...)`, etc.
+ */
+library SafeERC20 {
+    /**
+     * @dev An operation with an ERC-20 token failed.
+     */
+    error SafeERC20FailedOperation(address token);
+
+    /**
+     * @dev Indicates a failed `decreaseAllowance` request.
+     */
+    error SafeERC20FailedDecreaseAllowance(
+        address spender,
+        uint256 currentAllowance,
+        uint256 requestedDecrease
+    );
+
+    /**
+     * @dev Transfer `value` amount of `token` from the calling contract to `to`. If `token` returns no value,
+     * non-reverting calls are assumed to be successful.
+     */
+    function safeTransfer(
+        IERC20 token,
+        address to,
+        uint256 value
+    ) internal {
+        _callOptionalReturn(token, abi.encodeCall(token.transfer, (to, value)));
+    }
+
+    /**
+     * @dev Transfer `value` amount of `token` from `from` to `to`, spending the approval given by `from` to the
+     * calling contract. If `token` returns no value, non-reverting calls are assumed to be successful.
+     */
+    function safeTransferFrom(
+        IERC20 token,
+        address from,
+        address to,
+        uint256 value
+    ) internal {
+        _callOptionalReturn(
+            token,
+            abi.encodeCall(token.transferFrom, (from, to, value))
+        );
+    }
+
+    /**
+     * @dev Variant of {safeTransfer} that returns a bool instead of reverting if the operation is not successful.
+     */
+    function trySafeTransfer(
+        IERC20 token,
+        address to,
+        uint256 value
+    ) internal returns (bool) {
+        return
+            _callOptionalReturnBool(
+                token,
+                abi.encodeCall(token.transfer, (to, value))
+            );
+    }
+
+    /**
+     * @dev Variant of {safeTransferFrom} that returns a bool instead of reverting if the operation is not successful.
+     */
+    function trySafeTransferFrom(
+        IERC20 token,
+        address from,
+        address to,
+        uint256 value
+    ) internal returns (bool) {
+        return
+            _callOptionalReturnBool(
+                token,
+                abi.encodeCall(token.transferFrom, (from, to, value))
+            );
+    }
+
+    /**
+     * @dev Increase the calling contract's allowance toward `spender` by `value`. If `token` returns no value,
+     * non-reverting calls are assumed to be successful.
+     *
+     * IMPORTANT: If the token implements ERC-7674 (ERC-20 with temporary allowance), and if the "client"
+     * smart contract uses ERC-7674 to set temporary allowances, then the "client" smart contract should avoid using
+     * this function. Performing a {safeIncreaseAllowance} or {safeDecreaseAllowance} operation on a token contract
+     * that has a non-zero temporary allowance (for that particular owner-spender) will result in unexpected behavior.
+     */
+    function safeIncreaseAllowance(
+        IERC20 token,
+        address spender,
+        uint256 value
+    ) internal {
+        uint256 oldAllowance = token.allowance(address(this), spender);
+        forceApprove(token, spender, oldAllowance + value);
+    }
+
+    /**
+     * @dev Decrease the calling contract's allowance toward `spender` by `requestedDecrease`. If `token` returns no
+     * value, non-reverting calls are assumed to be successful.
+     *
+     * IMPORTANT: If the token implements ERC-7674 (ERC-20 with temporary allowance), and if the "client"
+     * smart contract uses ERC-7674 to set temporary allowances, then the "client" smart contract should avoid using
+     * this function. Performing a {safeIncreaseAllowance} or {safeDecreaseAllowance} operation on a token contract
+     * that has a non-zero temporary allowance (for that particular owner-spender) will result in unexpected behavior.
+     */
+    function safeDecreaseAllowance(
+        IERC20 token,
+        address spender,
+        uint256 requestedDecrease
+    ) internal {
+        unchecked {
+            uint256 currentAllowance = token.allowance(address(this), spender);
+            if (currentAllowance < requestedDecrease) {
+                revert SafeERC20FailedDecreaseAllowance(
+                    spender,
+                    currentAllowance,
+                    requestedDecrease
+                );
+            }
+            forceApprove(token, spender, currentAllowance - requestedDecrease);
+        }
+    }
+
+    /**
+     * @dev Set the calling contract's allowance toward `spender` to `value`. If `token` returns no value,
+     * non-reverting calls are assumed to be successful. Meant to be used with tokens that require the approval
+     * to be set to zero before setting it to a non-zero value, such as USDT.
+     *
+     * NOTE: If the token implements ERC-7674, this function will not modify any temporary allowance. This function
+     * only sets the "standard" allowance. Any temporary allowance will remain active, in addition to the value being
+     * set here.
+     */
+    function forceApprove(
+        IERC20 token,
+        address spender,
+        uint256 value
+    ) internal {
+        bytes memory approvalCall = abi.encodeCall(
+            token.approve,
+            (spender, value)
+        );
+
+        if (!_callOptionalReturnBool(token, approvalCall)) {
+            _callOptionalReturn(
+                token,
+                abi.encodeCall(token.approve, (spender, 0))
+            );
+            _callOptionalReturn(token, approvalCall);
+        }
+    }
+
+    /**
+     * @dev Performs an {ERC1363} transferAndCall, with a fallback to the simple {ERC20} transfer if the target has no
+     * code. This can be used to implement an {ERC721}-like safe transfer that rely on {ERC1363} checks when
+     * targeting contracts.
+     *
+     * Reverts if the returned value is other than `true`.
+     */
+    function transferAndCallRelaxed(
+        IERC1363 token,
+        address to,
+        uint256 value,
+        bytes memory data
+    ) internal {
+        if (to.code.length == 0) {
+            safeTransfer(token, to, value);
+        } else if (!token.transferAndCall(to, value, data)) {
+            revert SafeERC20FailedOperation(address(token));
+        }
+    }
+
+    /**
+     * @dev Performs an {ERC1363} transferFromAndCall, with a fallback to the simple {ERC20} transferFrom if the target
+     * has no code. This can be used to implement an {ERC721}-like safe transfer that rely on {ERC1363} checks when
+     * targeting contracts.
+     *
+     * Reverts if the returned value is other than `true`.
+     */
+    function transferFromAndCallRelaxed(
+        IERC1363 token,
+        address from,
+        address to,
+        uint256 value,
+        bytes memory data
+    ) internal {
+        if (to.code.length == 0) {
+            safeTransferFrom(token, from, to, value);
+        } else if (!token.transferFromAndCall(from, to, value, data)) {
+            revert SafeERC20FailedOperation(address(token));
+        }
+    }
+
+    /**
+     * @dev Performs an {ERC1363} approveAndCall, with a fallback to the simple {ERC20} approve if the target has no
+     * code. This can be used to implement an {ERC721}-like safe transfer that rely on {ERC1363} checks when
+     * targeting contracts.
+     *
+     * NOTE: When the recipient address (`to`) has no code (i.e. is an EOA), this function behaves as {forceApprove}.
+     * Opposedly, when the recipient address (`to`) has code, this function only attempts to call {ERC1363-approveAndCall}
+     * once without retrying, and relies on the returned value to be true.
+     *
+     * Reverts if the returned value is other than `true`.
+     */
+    function approveAndCallRelaxed(
+        IERC1363 token,
+        address to,
+        uint256 value,
+        bytes memory data
+    ) internal {
+        if (to.code.length == 0) {
+            forceApprove(token, to, value);
+        } else if (!token.approveAndCall(to, value, data)) {
+            revert SafeERC20FailedOperation(address(token));
+        }
+    }
+
+    /**
+     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract), relaxing the requirement
+     * on the return value: the return value is optional (but if data is returned, it must not be false).
+     * @param token The token targeted by the call.
+     * @param data The call data (encoded using abi.encode or one of its variants).
+     *
+     * This is a variant of {_callOptionalReturnBool} that reverts if call fails to meet the requirements.
+     */
+    function _callOptionalReturn(IERC20 token, bytes memory data) private {
+        uint256 returnSize;
+        uint256 returnValue;
+        assembly ("memory-safe") {
+            let success := call(
+                gas(),
+                token,
+                0,
+                add(data, 0x20),
+                mload(data),
+                0,
+                0x20
+            )
+            // bubble errors
+            if iszero(success) {
+                let ptr := mload(0x40)
+                returndatacopy(ptr, 0, returndatasize())
+                revert(ptr, returndatasize())
+            }
+            returnSize := returndatasize()
+            returnValue := mload(0)
+        }
+
+        if (
+            returnSize == 0 ? address(token).code.length == 0 : returnValue != 1
+        ) {
+            revert SafeERC20FailedOperation(address(token));
+        }
+    }
+
+    /**
+     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract), relaxing the requirement
+     * on the return value: the return value is optional (but if data is returned, it must not be false).
+     * @param token The token targeted by the call.
+     * @param data The call data (encoded using abi.encode or one of its variants).
+     *
+     * This is a variant of {_callOptionalReturn} that silently catches all reverts and returns a bool instead.
+     */
+    function _callOptionalReturnBool(IERC20 token, bytes memory data)
+        private
+        returns (bool)
+    {
+        bool success;
+        uint256 returnSize;
+        uint256 returnValue;
+        assembly ("memory-safe") {
+            success := call(
+                gas(),
+                token,
+                0,
+                add(data, 0x20),
+                mload(data),
+                0,
+                0x20
+            )
+            returnSize := returndatasize()
+            returnValue := mload(0)
+        }
+        return
+            success &&
+            (
+                returnSize == 0
+                    ? address(token).code.length > 0
+                    : returnValue == 1
+            );
     }
 }
 
@@ -682,13 +1303,7 @@ abstract contract Pausable is Context {
     }
 }
 
-abstract contract Storage {
-    enum SaleStatus {
-        Upcoming,
-        Ongoing,
-        Ended
-    }
-
+abstract contract Storage is ILaunchpadError {
     enum SaleType {
         presale,
         fairLaunch
@@ -704,26 +1319,48 @@ abstract contract Storage {
         VestingClaim
     }
 
-    struct ProjectInfo {
-        address owner;
-        IERC20 token;
-        SaleType saleType;
+    struct ClaimTypeDetail {
         ClaimType claimType;
+        uint256 vestRate;
+        uint256 vestingInterval;
+    }
+
+    struct ProjectOwner {
+        address lpToken;
+        uint256 usdValueClaimed;
+        uint256 lpTokenOwned;
+        uint256 liquidityTimestamp;
+        uint256 liquidityLockDuriation;
+        bool isClaimed;
+    }
+
+    struct SaleDetails {
+        SaleType saleType;
+        address token;
+        address pairToken;
         uint256 startTime;
         uint256 endTime;
-        uint256 totalTokensForSale;
         uint256 softCap;
         uint256 hardCap;
+        uint256 allocationForSale;
+    }
+
+    struct ProjectInfo {
+        address owner;
+        SaleDetails saleDetails;
         RefundOption refundOption;
-        bool liquidityLock;
-        SaleStatus status;
+        uint256 liqudityPercent;
+        uint256 totalAmount;
+        ClaimTypeDetail claimTypeDetail;
     }
 
     struct UserDetails {
         address[] investedAsset;
         uint256[] investedAmount;
-        uint256 ClaimAmount;
+        uint256 claimedAmount;
         bool claimed;
+        uint256 lastClaimTimestamp;
+        uint256 vestingInterval;
     }
 
     struct LaunchRules {
@@ -733,9 +1370,16 @@ abstract contract Storage {
     }
 
     struct PlatformFee {
-        uint256 saleFeeValue;
-        uint256 projectFeeValue;
-        address feeCollector;
+        address platformOwner;
+        address platformSigner;
+        uint256 commisonFee;
+        uint256 projectPlatformFee;
+    }
+
+    struct Sig {
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
     }
 
     address[] public allLaunchpadContract;
@@ -743,7 +1387,17 @@ abstract contract Storage {
     mapping(uint256 => LaunchRules) public presaleDetails;
     mapping(uint256 => uint256) public totalRaisedInUSD;
     mapping(uint256 => mapping(address => UserDetails)) public investorInfo; // ProjectId → User → Contribution
+    mapping(address => ProjectOwner) public projectOwnerDetails;
     mapping(uint256 => PlatformFee) public platformFee;
+
+    event SaleCreated(
+        address indexed projectOwner,
+        uint256 indexed projectId,
+        address projectToken,
+        uint256 tokenAllocation,
+        uint256 commisionFee,
+        uint256 timestamp
+    );
 
     event UserContribution(
         address indexed user,
@@ -756,154 +1410,443 @@ abstract contract Storage {
 
 contract GiantSale is Storage, AccessControl {
     AggregatorV3Interface internal priceFeed;
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+
+    using SafeERC20 for IERC20;
+    using BytesLibrary for bytes32;
+
+    uint256 private _projectId;
+
+    bytes32 public constant PROJECT_OWNER_ROLE =
+        keccak256("PROJECT_OWNER_ROLE");
+    bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
+
+    mapping(bytes32 => bool) public completed; // 1.completed
+
+    receive() external payable {}
 
     constructor(
         ProjectInfo memory _projectInfo,
         LaunchRules memory _launchRules,
         PlatformFee memory _platformFee,
-        uint256 _projectId
+        uint256 __projectId,
+        uint256 liquidityLockDuriation
     ) {
-        if (projects[_projectId].owner != address(0))
+        if (projects[__projectId].owner != address(0))
             return revert("Already Initialized");
         priceFeed = AggregatorV3Interface(
             0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526
         );
-        grantRole(DEFAULT_ADMIN_ROLE, _projectInfo.owner);
-        projects[_projectId] = _projectInfo;
-        presaleDetails[_projectId] = _launchRules;
-        platformFee[_projectId] = _platformFee;
+        _projectId = __projectId;
+        projects[__projectId] = _projectInfo;
+        presaleDetails[__projectId] = _launchRules;
+        platformFee[__projectId] = _platformFee;
+        projectOwnerDetails[_projectInfo.owner]
+            .liquidityLockDuriation = liquidityLockDuriation;
+        _grantRole(DEFAULT_ADMIN_ROLE, _platformFee.platformOwner);
+        _grantRole(PROJECT_OWNER_ROLE, _projectInfo.owner);
+        _grantRole(SIGNER_ROLE, _platformFee.platformSigner);
+    }
+
+    function vestClaim(
+        address _user,
+        uint256 _deadline,
+        Sig memory sig
+    ) external {
+        require(_user == _msgSender() , "Invalid User");
+        require(
+            hasRole(
+                SIGNER_ROLE,
+                validateSaleSignature(_user, 0, _deadline, sig)
+            ),
+            "Sale : Invalid Signer"
+        );
+        proceedClaim(_user, 0, true);
+    }
+
+    function claim(
+        address _user,
+        uint256 _amount,
+        uint256 _deadline,
+        Sig memory sig
+    ) external {
+        require(_user == _msgSender() , "Invalid User");
+        require(
+            hasRole(
+                SIGNER_ROLE,
+                validateSaleSignature(_user, _amount, _deadline, sig)
+            ),
+            "Sale : Invalid Signer"
+        );
+        proceedClaim(_user, _amount, false);
+    }
+
+    function claimLiquidity(
+        address _user,
+        uint256 _amount,
+        uint256 _deadline,
+        Sig memory sig
+    ) external onlyRole(PROJECT_OWNER_ROLE) {
+        require(
+            block.timestamp >
+                projectOwnerDetails[msg.sender].liquidityTimestamp +
+                    projectOwnerDetails[msg.sender].liquidityLockDuriation,
+            "Liquidity Locked"
+        );
+        require(!projectOwnerDetails[msg.sender].isClaimed, "Already Claimed");
+        require(
+            hasRole(
+                SIGNER_ROLE,
+                validateSaleSignature(_user, _amount, _deadline, sig)
+            ),
+            "Sale : Invalid Signer"
+        );
+        projectOwnerDetails[msg.sender].isClaimed = true;
+        IERC20(projectOwnerDetails[msg.sender].lpToken).safeTransfer(
+            msg.sender,
+            projectOwnerDetails[msg.sender].lpTokenOwned
+        );
+    }
+
+    function addLiquidity(
+        address _router,
+        address _token,
+        uint256 _amount,
+        uint256 _deadline,
+        bool isGtan,
+        Sig memory sig
+    ) external onlyRole(PROJECT_OWNER_ROLE) {
+        ProjectInfo storage _projectInfo = projects[_projectId];
+        require(
+            hasRole(
+                SIGNER_ROLE,
+                validateSaleSignature(msg.sender, _amount, _deadline, sig)
+            ),"Invalid Signer"
+        );
+        require(projectOwnerDetails[_msgSender()].lpToken == address(0) , "Already Added");
+        address wbnb = IPancakeRouter01(_router).WETH();
+        if (!isGtan) {
+            if(address(wbnb) != address(_projectInfo.saleDetails.pairToken)){
+                uint256 amountA = ( _projectInfo.totalAmount * _projectInfo.liqudityPercent) / 100e18;
+            }
+        }
     }
 
     function contribute(
-        uint256 _projectId,
+        address _router,
         address _token,
-        uint256 _amount
+        uint256 _amount,
+        uint256 _deadline,
+        bool isGtan,
+        Sig memory sig
     ) external payable {
         ProjectInfo storage _projectInfo = projects[_projectId];
-        LaunchRules storage _launchRules = presaleDetails[_projectId];
-        UserDetails storage _userDetails = investorInfo[_projectId][msg.sender];
         require(
-            block.timestamp > _projectInfo.startTime &&
-                block.timestamp < _projectInfo.endTime,
+            block.timestamp > _projectInfo.saleDetails.startTime &&
+                block.timestamp < _projectInfo.saleDetails.endTime,
             "Sale is not active"
         );
         require(
-            _amount >= _launchRules.minContribution,
-            "Minimum Contribution not met"
+            hasRole(
+                SIGNER_ROLE,
+                validateSaleSignature(msg.sender, _amount, _deadline, sig)
+            ),
+            "Sale : Invalid Signer"
         );
-        require(
-            _amount <= _launchRules.maxContribution,
-            "Maximum Contribution exceeded"
-        );
-        _userDetails.investedAsset.push(_token);
-        _userDetails.investedAmount.push(_amount);
+
         if (_token != address(0)) {
-            tokenSafeTransferFrom(
-                IERC20(_token),
-                msg.sender,
-                address(this),
+            _contributeToken(_router, _token, _amount, _deadline, isGtan);
+        } else {
+            _contributeETH(_router, _amount, _deadline, isGtan);
+        }
+    }
+
+    function _contributeToken(
+        address _router,
+        address _token,
+        uint256 _amount,
+        uint256 _deadline,
+        bool isGtan
+    ) internal {
+        IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
+        uint256 commision = getCommisionFee(_amount);
+        _amount -= commision;
+
+        address wbnb = IPancakeRouter01(_router).WETH();
+        if (isGtan) {
+            _handleGtanToken(_router, _token, _amount, _deadline, wbnb);
+        } else {
+            _handleNormalToken(_router, _token, _amount, _deadline, wbnb);
+        }
+    }
+
+    function _contributeETH(
+        address _router,
+        uint256 _amount,
+        uint256 _deadline,
+        bool isGtan
+    ) internal {
+        require(msg.value == _amount, "Invalid ETH Value");
+        require(_deadline > block.timestamp, "Invalid Deadline");
+        uint256 commisionFee = getCommisionFee(_amount);
+        _amount -= commisionFee;
+        convertUsdPrice(msg.sender, address(0), _amount, isGtan);
+
+        address wbnb = IPancakeRouter01(_router).WETH();
+        if (
+            address(wbnb) != address(projects[_projectId].saleDetails.pairToken)
+        ) {
+            address[] memory path = new address[](2);
+            path[0] = address(0);
+            path[1] = projects[_projectId].saleDetails.pairToken;
+            uint256[] memory amounts = this.getMarketPrice(
+                _router,
+                path,
                 _amount
             );
-            uint256 contributionInUSDT = (_amount *
-                _launchRules.tokenPriceinUSD) / 1e18;
-            totalRaisedInUSD[_projectId] += contributionInUSDT;
-            emit UserContribution(
-                msg.sender,
-                _projectId,
-                _token,
-                _amount,
-                block.timestamp
+            IPancakeRouter01(_router).swapExactETHForTokens{value: _amount}(
+                amounts[amounts.length - 1],
+                path,
+                address(this),
+                _deadline
             );
-            return;
         }
-        require(msg.value == _amount, "Amount Mismatches");
+    }
+
+    function _handleGtanToken(
+        address _router,
+        address _token,
+        uint256 _amount,
+        uint256 _deadline,
+        address wbnb
+    ) internal {
+        address[] memory path = new address[](2);
+        path[0] = _token;
+        path[1] = wbnb;
+        _amount = this.getMarketPrice(_router, path, _amount)[1];
         uint256 bnbPrice = getBNBPriceInUSD();
         uint256 contributionInUSD = (_amount * bnbPrice) / 1e18;
+        convertUsdPrice(msg.sender, _token, contributionInUSD, true);
+
+        if (
+            address(wbnb) != address(projects[_projectId].saleDetails.pairToken)
+        ) {
+            address[] memory _path = new address[](3);
+            _path[0] = _token;
+            _path[1] = wbnb;
+            _path[2] = address(projects[_projectId].saleDetails.pairToken);
+            uint256[] memory amounts = this.getMarketPrice(
+                _router,
+                _path,
+                _amount
+            );
+            IERC20(_token).safeIncreaseAllowance(_router, _amount);
+            IPancakeRouter01(_router).swapExactTokensForTokens(
+                _amount,
+                amounts[amounts.length - 1],
+                _path,
+                address(this),
+                _deadline
+            );
+        } else {
+            IERC20(_token).safeIncreaseAllowance(_router, _amount);
+            IPancakeRouter01(_router).swapExactTokensForETH(
+                _amount,
+                0,
+                path,
+                address(this),
+                _deadline
+            );
+        }
+    }
+
+    function _handleNormalToken(
+        address _router,
+        address _token,
+        uint256 _amount,
+        uint256 _deadline,
+        address wbnb
+    ) internal {
+        convertUsdPrice(msg.sender, _token, _amount, false);
+
+        if (
+            address(wbnb) != address(projects[_projectId].saleDetails.pairToken)
+        ) {
+            address[] memory _path = new address[](3);
+            _path[0] = _token;
+            _path[1] = wbnb;
+            _path[2] = address(projects[_projectId].saleDetails.pairToken);
+            uint256[] memory amounts = this.getMarketPrice(
+                _router,
+                _path,
+                _amount
+            );
+            IERC20(_token).safeIncreaseAllowance(_router, _amount);
+            IPancakeRouter01(_router).swapExactTokensForTokens(
+                _amount,
+                amounts[amounts.length - 1],
+                _path,
+                address(this),
+                _deadline
+            );
+        } else {
+            IERC20(_token).safeIncreaseAllowance(_router, _amount);
+            IPancakeRouter01(_router).swapExactTokensForETH(
+                _amount,
+                0,
+                new address[](2),
+                address(this),
+                _deadline
+            );
+        }
+    }
+
+    function convertUsdPrice(
+        address _user,
+        address _token,
+        uint256 _amount,
+        bool isGtan
+    ) internal {
+        UserDetails storage _userDetails = investorInfo[_projectId][_user];
+        LaunchRules storage _launchRules = presaleDetails[_projectId];
+        _userDetails.investedAsset.push(_token);
+        _userDetails.lastClaimTimestamp = block.timestamp;
+
+        if (_token != address(0)) {
+            if (!isGtan) {
+                if (
+                    _amount < _launchRules.minContribution ||
+                    _amount > _launchRules.maxContribution
+                ) revert MinMaxCollapse();
+                totalRaisedInUSD[_projectId] += _amount;
+                _userDetails.investedAmount.push(_amount);
+            }
+        }
+        uint256 bnbPrice = getBNBPriceInUSD();
+        uint256 contributionInUSD = (_amount * bnbPrice) / 1e18;
+        if (
+            contributionInUSD < _launchRules.minContribution ||
+            contributionInUSD > _launchRules.maxContribution
+        ) revert MinMaxCollapse();
         totalRaisedInUSD[_projectId] += contributionInUSD;
-        emit UserContribution(
-            msg.sender,
-            _projectId,
-            _token,
-            _amount,
-            block.timestamp
+        _userDetails.investedAmount.push(contributionInUSD);
+        return;
+    }
+
+    function getMarketPrice(
+        address _router,
+        address[] memory path,
+        uint256 amountIn
+    ) external view returns (uint256[] memory amounts) {
+        amounts = IPancakeRouter01(_router).getAmountsOut(amountIn, path);
+    }
+
+    function proceedClaim(
+        address _user,
+        uint256 _amount,
+        bool isVesting
+    ) private {
+        ProjectInfo storage project = projects[_projectId];
+        UserDetails storage userInfo = investorInfo[_projectId][msg.sender];
+        require(block.timestamp > project.saleDetails.endTime, "Sale Not End");
+        require(
+            userInfo.investedAmount.length > 0 && _user == msg.sender,
+            "Invalid User"
         );
+        uint256 userRewardAmount = calcReward(_user);
+        if (!isVesting) {
+            require(
+                project.claimTypeDetail.claimType == ClaimType.NormalClaim,
+                "Not Vesting Claim"
+            );
+            require(_amount <= userRewardAmount, "Amount Exceeds Reward");
+            require(
+                userInfo.claimedAmount <= userRewardAmount || userInfo.claimed,
+                "Already Claimed"
+            );
+            IERC20(project.saleDetails.token).safeTransfer(_user, _amount);
+
+            return;
+        }
+        require(
+            project.claimTypeDetail.claimType == ClaimType.VestingClaim,
+            "Only Vesting Claim"
+        );
+        require(!(userInfo.claimed), "Already Claimed");
+        uint256 elapsed = getElapsed(
+            userInfo.lastClaimTimestamp,
+            userInfo.vestingInterval
+        );
+        require(elapsed >= 1, "No rewards Available Yet");
+        uint256 vestAmount = calcVest(
+            userRewardAmount,
+            elapsed,
+            project.claimTypeDetail.vestRate
+        );
+        IERC20(project.saleDetails.token).safeTransfer(_user, vestAmount);
+        userInfo.claimedAmount += vestAmount;
+        updateUserForVesting(_user);
     }
 
-    function tokenSafeTransferFrom(
-        IERC20 _token,
-        address from,
-        address to,
-        uint256 amount
-    ) internal {
-        bool success;
-
-        assembly {
-            // Get a pointer to some free memory.
-            let freeMemoryPointer := mload(0x40)
-
-            // Write the abi-encoded calldata into memory, beginning with the function selector.
-            mstore(
-                freeMemoryPointer,
-                0x23b872dd00000000000000000000000000000000000000000000000000000000
-            )
-            mstore(add(freeMemoryPointer, 4), from) // Append the "from" argument.
-            mstore(add(freeMemoryPointer, 36), to) // Append the "to" argument.
-            mstore(add(freeMemoryPointer, 68), amount) // Append the "amount" argument.
-
-            success := and(
-                // Set success to whether the call reverted, if not we check it either
-                // returned exactly 1 (can't just be non-zero data), or had no return data.
-                or(
-                    and(eq(mload(0), 1), gt(returndatasize(), 31)),
-                    iszero(returndatasize())
-                ),
-                // We use 100 because the length of our calldata totals up like so: 4 + 32 * 3.
-                // We use 0 and 32 to copy up to 32 bytes of return data into the scratch space.
-                // Counterintuitively, this call must be positioned second to the or() call in the
-                // surrounding and() call or else returndatasize() will be zero during the computation.
-                call(gas(), _token, 0, freeMemoryPointer, 100, 0, 32)
-            )
+    function calcReward(address _user) internal view returns (uint256) {
+        uint256 _userFund = getUserFund(_user);
+        if (projects[_projectId].saleDetails.saleType == SaleType.presale) {
+            return (_userFund / presaleDetails[_projectId].tokenPriceinUSD);
         }
-
-        require(success, "TRANSFER_FROM_FAILED");
+        return ((_userFund *
+            projects[_projectId].saleDetails.allocationForSale) /
+            totalRaisedInUSD[_projectId]);
     }
 
-    function tokenSafeTransfer(
-        IERC20 _token,
-        address to,
-        uint256 amount
-    ) internal {
-        bool success;
-
-        assembly {
-            // Get a pointer to some free memory.
-            let freeMemoryPointer := mload(0x40)
-
-            // Write the abi-encoded calldata into memory, beginning with the function selector.
-            mstore(
-                freeMemoryPointer,
-                0xa9059cbb00000000000000000000000000000000000000000000000000000000
-            )
-            mstore(add(freeMemoryPointer, 4), to) // Append the "to" argument.
-            mstore(add(freeMemoryPointer, 36), amount) // Append the "amount" argument.
-
-            success := and(
-                // Set success to whether the call reverted, if not we check it either
-                // returned exactly 1 (can't just be non-zero data), or had no return data.
-                or(
-                    and(eq(mload(0), 1), gt(returndatasize(), 31)),
-                    iszero(returndatasize())
-                ),
-                // We use 68 because the length of our calldata totals up like so: 4 + 32 * 2.
-                // We use 0 and 32 to copy up to 32 bytes of return data into the scratch space.
-                // Counterintuitively, this call must be positioned second to the or() call in the
-                // surrounding and() call or else returndatasize() will be zero during the computation.
-                call(gas(), _token, 0, freeMemoryPointer, 68, 0, 32)
-            )
+    function getUserFund(address user)
+        internal
+        view
+        returns (uint256 depositedFund)
+    {
+        for (
+            uint256 fund;
+            fund < investorInfo[_projectId][user].investedAmount.length;
+            fund++
+        ) {
+            depositedFund += investorInfo[_projectId][user].investedAmount[
+                fund
+            ];
         }
+        return depositedFund;
+    }
 
-        require(success, "TRANSFER_FAILED");
+    function calcVest(
+        uint256 _amount,
+        uint256 elapsed,
+        uint256 rate
+    ) internal pure returns (uint256) {
+        return (_amount * elapsed * rate) / 100e18;
+    }
+
+    function getElapsed(uint256 lastTimestamp, uint256 vestInterval)
+        internal
+        view
+        returns (uint256)
+    {
+        return ((block.timestamp - lastTimestamp) / vestInterval);
+    }
+
+    function getCommisionFee(uint256 _amount) internal view returns (uint256) {
+        uint256 commisionFee = platformFee[_projectId].commisonFee;
+        return ((_amount * commisionFee) / 100e18);
+    }
+
+    function updateUserForVesting(address user) internal {
+        if (
+            projects[_projectId].claimTypeDetail.claimType ==
+            ClaimType.VestingClaim
+        ) {
+            investorInfo[_projectId][user].lastClaimTimestamp = block.timestamp;
+            investorInfo[_projectId][user].vestingInterval = projects[
+                _projectId
+            ].claimTypeDetail.vestingInterval;
+            return;
+        }
+        return;
     }
 
     function getBNBPriceInUSD() public view returns (uint256) {
@@ -911,33 +1854,94 @@ contract GiantSale is Storage, AccessControl {
         // price has 8 decimals → convert to 18 decimals
         return uint256(price) * 1e10;
     }
+
+    function mixHash(
+        address _user,
+        uint256 _amount,
+        uint256 deadline
+    ) external view returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    _user,
+                    _amount,
+                    deadline,
+                    _projectId,
+                    address(this)
+                )
+            );
+    }
+
+    function validateSaleSignature(
+        address _user,
+        uint256 _amount,
+        uint256 deadline,
+        Sig memory sig
+    ) public view returns (address) {
+        require(
+            completed[this.mixHash(_user, _amount, deadline)] != true,
+            "Signature exist"
+        );
+        if (sig.v == 0 && sig.r == bytes32(0x0) && sig.s == bytes32(0x0)) {
+            revert("Incorrect bid signature");
+        } else {
+            return
+                this.mixHash(_user, _amount, deadline).recover(
+                    sig.v,
+                    sig.r,
+                    sig.s
+                );
+        }
+    }
 }
 
 contract GiantpadFactory is AccessControl, Storage, Pausable {
+    using BytesLibrary for bytes32;
+    using SafeERC20 for IERC20;
+
     uint256 public projectId;
-    bytes32 public constant DEPLOYER_ROLE = keccak256("DEPLOYER_ROLE");
+    bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
     address[] private _projectOwners;
     mapping(address => address[]) private _factory;
+    mapping (address => mapping(address => bool)) private isTokenExists;
+    mapping(bytes32 => bool) public completed; // 1.completed
 
-    constructor(address admin) {
+    constructor(address admin, address signer) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(SIGNER_ROLE, signer);
     }
 
     function createSale(
         ProjectInfo memory _projectInfo,
         LaunchRules memory _launchRules,
-        PlatformFee memory _platformFee
-    ) external onlyRole(DEPLOYER_ROLE) {
+        PlatformFee memory _platformFee,
+        address _commisionAsset,
+        uint256 _commisionFee,
+        uint256 liquidityLockDuriation,
+        Sig memory sig
+    ) external whenNotPaused payable {
         projectId++;
         if (!isAnyExceptionOccurs(_projectInfo, _launchRules, _platformFee))
             return;
-
+        require(
+            hasRole(
+                SIGNER_ROLE,
+                validateSaleSignatureView(
+                    _projectInfo,
+                    _launchRules,
+                    _platformFee,
+                    sig
+                )
+            ),
+            "Factory : Invalid Signer"
+        );
         bytes memory bytecode = type(GiantSale).creationCode;
         bytes memory arguments = abi.encode(
             _projectInfo,
             _launchRules,
             _platformFee,
-            projectId
+            projectId,
+            liquidityLockDuriation
         );
         bytes memory deploymentData = abi.encodePacked(bytecode, arguments);
 
@@ -948,75 +1952,238 @@ contract GiantpadFactory is AccessControl, Storage, Pausable {
             ),
             deploymentData
         );
+        require(saleContract != address(0), "Deployment failed");
 
+        if (_commisionAsset == address(0)) {
+            require(_commisionFee == msg.value, "invalid Commision Fee");
+            payable(saleContract).transfer(_commisionFee);
+            return;
+        }
+        IERC20(_commisionAsset).safeTransferFrom(
+            msg.sender,
+            saleContract,
+            _commisionFee
+        );
+        IERC20(_projectInfo.saleDetails.token).safeTransferFrom(
+            msg.sender,
+            saleContract,
+            _projectInfo.totalAmount
+        );
         if (_factory[msg.sender].length == 0) _projectOwners.push(msg.sender);
         _factory[msg.sender].push(saleContract);
+        isTokenExists[msg.sender][_projectInfo.saleDetails.token] = true;
+        emit SaleCreated(
+            _projectInfo.owner,
+            projectId,
+            address(_projectInfo.saleDetails.token),
+            _projectInfo.saleDetails.allocationForSale,
+            _commisionFee,
+            block.timestamp
+        );
     }
 
     function isAnyExceptionOccurs(
         ProjectInfo memory _projectInfo,
         LaunchRules memory _launchRules,
         PlatformFee memory _platformFee
-    ) internal pure returns (bool) {
+    ) internal view returns (bool) {
+        //Checking Sale Type that isn't INVALID OPTION
+        if (
+            _projectInfo.saleDetails.saleType != SaleType.fairLaunch &&
+            _projectInfo.saleDetails.saleType != SaleType.presale
+        ) revert InvalidOption();
+
+        //Checking Owner Address that isn't ZERO ADDRESS
+        if (
+            address(_projectInfo.owner) == address(0) ||
+            address(_projectInfo.saleDetails.token) == address(0) ||
+            address(_projectInfo.saleDetails.pairToken) == address(0)
+        ) revert NotZeroValue();
+
+        if (msg.sender != _projectInfo.owner) revert("Invalid Owner");
+
+        //Checking  Sale Start And End that isn't ZERO Value
+        if (
+                _projectInfo.saleDetails.endTime <= 0 ||
+                _projectInfo.saleDetails.startTime <= 0 ||
+                block.timestamp > _projectInfo.saleDetails.endTime ||
+                 _projectInfo.saleDetails.startTime >  _projectInfo.saleDetails.endTime
+        ) revert ("Invalid Sale time");
+
+        //CHECKING PLATFORM FEE IS ENABLED OR DISABLED
+        if (
+            _platformFee.commisonFee <= 0 ||
+            _platformFee.projectPlatformFee <= 0 ||
+            _platformFee.platformOwner == address(0) ||
+            _platformFee.platformSigner == address(0)
+        ) revert NotZeroValue();
+
+        //Checking Refund Option that isn't INVALID OPTION
+        if (
+            _projectInfo.refundOption != RefundOption.Burn &&
+            _projectInfo.refundOption != RefundOption.ReturnToOwner
+        ) revert InvalidOption();
+        //Checking Allocation Amount For Sale that isn't ZERO Value
+        if (_projectInfo.saleDetails.allocationForSale <= 0)
+            revert NotZeroValue();
+
+        if (
+            _projectInfo.liqudityPercent <= 0||
+            _projectInfo.totalAmount <= 0 ||
+            _projectInfo.totalAmount <
+            _projectInfo.saleDetails.allocationForSale 
+        ) revert InvalidAmount();
+
+        uint256 liquidityAmount = (_projectInfo.totalAmount *
+            _projectInfo.liqudityPercent) / 100e18;
+
         require(
-            _projectInfo.owner != address(0) &&
-                address(_projectInfo.token) != address(0),
-            "Factory : Invalid address"
-        );
-        require(
-            _projectInfo.saleType == SaleType.presale ||
-                _projectInfo.saleType == SaleType.fairLaunch,
-            "Factory : Invalid Sale"
-        );
-        require(
-            _projectInfo.claimType == ClaimType.NormalClaim ||
-                _projectInfo.claimType == ClaimType.VestingClaim,
-            "Factory : Invalid Claim"
-        );
-        require(
-            _projectInfo.endTime > _projectInfo.startTime,
-            "Factory : Invalid time"
-        );
-        require(
-            _projectInfo.totalTokensForSale > 0,
-            "Factory : Invalid token amount"
-        );
-        require(
-            _platformFee.projectFeeValue > 0 &&
-                _platformFee.saleFeeValue > 0 &&
-                _platformFee.feeCollector != address(0),
-            "Factory : Invalid fee"
-        );
-        require(
-            _projectInfo.refundOption == RefundOption.Burn ||
-                _projectInfo.refundOption == RefundOption.ReturnToOwner,
-            "Factory : Invalid refund option"
-        );
-        require(
-            _projectInfo.status == SaleStatus.Upcoming,
-            "Factory : Invalid Sale Status"
+            liquidityAmount + _projectInfo.saleDetails.allocationForSale ==
+                _projectInfo.totalAmount,
+            "Amount Mismatches"
         );
 
-        if (_projectInfo.saleType == SaleType.presale) {
-            require(
-                _launchRules.tokenPriceinUSD > 0 &&
-                    _launchRules.minContribution > 0 &&
-                    _launchRules.maxContribution > _launchRules.minContribution,
-                "Factory : Invalid Launch Rules"
-            );
+        if (
+            _projectInfo.claimTypeDetail.claimType != ClaimType.VestingClaim &&
+            _projectInfo.claimTypeDetail.claimType != ClaimType.NormalClaim
+        ) revert InvalidOption();
+
+        if (_projectInfo.claimTypeDetail.claimType == ClaimType.VestingClaim) {
+            if (
+                _projectInfo.claimTypeDetail.vestRate <= 0 ||
+                _projectInfo.claimTypeDetail.vestingInterval <= 0
+            ) revert("Invalid Vesting Interval");
+        }
+
+        if (isTokenExists[_projectInfo.owner][_projectInfo.saleDetails.token]) revert("Already Exists");
+
+        if (_projectInfo.saleDetails.saleType == SaleType.presale) {
+
+            //Checking  Launch Rules that isn't ZERO Value
+            if (
+                _launchRules.tokenPriceinUSD <= 0 ||
+                _launchRules.minContribution <= 0 ||
+                _launchRules.maxContribution <= 0 ||
+                _launchRules.maxContribution < _launchRules.minContribution
+            ) revert NotZeroValue();
+            if (
+                _projectInfo.saleDetails.hardCap <= 0 ||
+                _projectInfo.saleDetails.softCap <= 0 ||
+                _projectInfo.saleDetails.hardCap < _projectInfo.saleDetails.softCap
+            ) revert ("Invalid Softcap or Hardcap");
             return true;
         } else {
-            require(
-                _projectInfo.softCap == 0 &&
-                    _projectInfo.hardCap == 0 &&
-                    _launchRules.tokenPriceinUSD == 0,
-                "Factory : Invalid cap"
-            );
-            require(
-                _projectInfo.liquidityLock == true,
-                "Factory : Invalid Liquidity Provision"
-            );
+            if (
+                _projectInfo.saleDetails.softCap >= 0 ||
+                _projectInfo.saleDetails.hardCap >= 0 ||
+                _launchRules.tokenPriceinUSD >= 0
+            ) revert ("Invalid SoftCap or HardCap");
             return true;
         }
     }
+
+    function mixHash(
+        ProjectInfo memory _projectInfo,
+        LaunchRules memory _launchRules,
+        PlatformFee memory _platformFee
+    ) external pure returns (bytes32) {
+        bytes32 hash = keccak256(
+            abi.encodePacked(
+                _projectInfo.owner,
+                _projectInfo.saleDetails.saleType,
+                _projectInfo.saleDetails.token,
+                _projectInfo.saleDetails.startTime,
+                _projectInfo.saleDetails.endTime,
+                _projectInfo.saleDetails.softCap,
+                _projectInfo.saleDetails.hardCap,
+                _projectInfo.saleDetails.allocationForSale,
+                _projectInfo.refundOption,
+                _projectInfo.liqudityPercent,
+                _projectInfo.totalAmount
+            )
+        );
+        hash = keccak256(
+            abi.encodePacked(
+                hash,
+                _projectInfo.claimTypeDetail.claimType,
+                _projectInfo.claimTypeDetail.vestRate,
+                _projectInfo.claimTypeDetail.vestingInterval,
+                _launchRules.tokenPriceinUSD,
+                _launchRules.minContribution,
+                _launchRules.maxContribution,
+                _platformFee.commisonFee,
+                _platformFee.projectPlatformFee
+            )
+        );
+        return hash;
+    }
+
+    function validateSaleSignatureView(
+        ProjectInfo memory _projectInfo,
+        LaunchRules memory _launchRules,
+        PlatformFee memory _platformFee,
+        Sig memory sig
+    ) public view returns (address) {
+        require(
+            completed[this.mixHash(_projectInfo, _launchRules, _platformFee)] !=
+                true,
+            "Signature exist"
+        );
+        if (sig.v == 0 && sig.r == bytes32(0x0) && sig.s == bytes32(0x0)) {
+            revert("Incorrect bid signature");
+        } else {
+            return
+                this.mixHash(_projectInfo, _launchRules, _platformFee).recover(
+                    sig.v,
+                    sig.r,
+                    sig.s
+                );
+        }
+    }
+
+    function getCreatedAddress(address account, uint256 index)
+        external
+        view
+        returns (address)
+    {
+        return _factory[account][index];
+    }
+
+    function getAllCreatedAddress(address account)
+        external
+        view
+        returns (address[] memory)
+    {
+        return _factory[account];
+    }
+
+    function getProjectOwnerByIndex(uint256 index)
+        external
+        view
+        returns (address)
+    {
+        return _projectOwners[index];
+    }
+
+    function getProjectOwnersCount() external view returns (uint256) {
+        return _projectOwners.length;
+    }
+
+    function getCreatedCount(address account) public view returns (uint256) {
+        return _factory[account].length;
+    }
+
+    function isTokenAlreadyExists(address _user , address _token) external view returns (bool){
+        return isTokenExists[_user][_token];
+    }
+
+    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _pause();
+    }
+
+    function unPause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _unpause();
+    }
+
+
 }
