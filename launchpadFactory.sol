@@ -1419,7 +1419,7 @@ contract GiantSale is Storage, AccessControl {
     bytes32 public constant PROJECT_OWNER_ROLE =
         keccak256("PROJECT_OWNER_ROLE");
     bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
-
+    address private _wbnb = 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9;
     mapping(bytes32 => bool) public completed; // 1.completed
 
     receive() external payable {}
@@ -1434,12 +1434,12 @@ contract GiantSale is Storage, AccessControl {
         if (projects[__projectId].owner != address(0))
             return revert("Already Initialized");
         priceFeed = AggregatorV3Interface(
-            0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526
+            0xa513E6E4b8f2a923D98304ec87F64353C4D5C853
         );
         _projectId = __projectId;
-        projects[__projectId] = _projectInfo;
-        presaleDetails[__projectId] = _launchRules;
-        platformFee[__projectId] = _platformFee;
+        projects[_projectId] = _projectInfo;
+        presaleDetails[_projectId] = _launchRules;
+        platformFee[_projectId] = _platformFee;
         projectOwnerDetails[_projectInfo.owner]
             .liquidityLockDuriation = liquidityLockDuriation;
         _grantRole(DEFAULT_ADMIN_ROLE, _platformFee.platformOwner);
@@ -1524,12 +1524,64 @@ contract GiantSale is Storage, AccessControl {
         );
         require(projectOwnerDetails[_msgSender()].lpToken == address(0) , "Already Added");
         address wbnb = IPancakeRouter01(_router).WETH();
+                uint256 amountA = ( _projectInfo.totalAmount * _projectInfo.liqudityPercent) / 100e18;
+                uint256 amountB = ( totalRaisedInUSD[_projectId] * _projectInfo.liqudityPercent) / 100e18;
         if (!isGtan) {
             if(address(wbnb) != address(_projectInfo.saleDetails.pairToken)){
-                uint256 amountA = ( _projectInfo.totalAmount * _projectInfo.liqudityPercent) / 100e18;
+
+                _projectInfo.totalAmount -= amountA;
+                totalRaisedInUSD[_projectId] -= amountB;
+                (,,uint256 liquidity) = IPancakeRouter01(_router).addLiquidity(
+                    _token,
+                    _projectInfo.saleDetails.pairToken,
+                    amountA,
+                    amountB,
+                    amountA,
+                    amountB,
+                    address(this),
+                    block.timestamp + 60
+                );
+                projectOwnerDetails[_msgSender()].lpTokenOwned = liquidity;
+                projectOwnerDetails[_msgSender()].liquidityTimestamp = block.timestamp;
+            }else{
+                _projectInfo.totalAmount -= amountA;
+                totalRaisedInUSD[_projectId] -= amountB;
+                uint256 bnbPrice = getBNBPriceInUSD();
+                uint256 bnbAmount = (amountB * 1e18) / bnbPrice;
+                 (,,uint256 liquidity) = IPancakeRouter01(_router).addLiquidityETH{value:bnbAmount}(
+                    _token,
+                    amountA,
+                    amountA,
+                    bnbAmount,
+                    address(this),
+                    block.timestamp + 60
+                );
+                projectOwnerDetails[_msgSender()].lpTokenOwned = liquidity;
+                projectOwnerDetails[_msgSender()].liquidityTimestamp = block.timestamp;
+
             }
+        }else{
+            uint256 bnbPrice = getBNBPriceInUSD();
+            uint256 bnbAmount = (amountB * 1e18) / bnbPrice;
+            address[] memory path = new address[](2);
+            path[0] = wbnb;
+            path[1] = _token;
+            _amount = this.getMarketPrice(_router, path, bnbAmount)[1];
+             (,,uint256 liquidity) = IPancakeRouter01(_router).addLiquidity(
+                    _token,
+                    _projectInfo.saleDetails.pairToken,
+                    amountA,
+                    amountB,
+                    amountA,
+                    amountB,
+                    address(this),
+                    block.timestamp + 60
+                );
+                projectOwnerDetails[_msgSender()].lpTokenOwned = liquidity;
+                projectOwnerDetails[_msgSender()].liquidityTimestamp = block.timestamp;
         }
     }
+
 
     function contribute(
         address _router,
@@ -1556,7 +1608,7 @@ contract GiantSale is Storage, AccessControl {
         if (_token != address(0)) {
             _contributeToken(_router, _token, _amount, _deadline, isGtan);
         } else {
-            _contributeETH(_router, _amount, _deadline, isGtan);
+            _contributeETH(_router, _amount, _deadline);
         }
     }
 
@@ -1582,21 +1634,22 @@ contract GiantSale is Storage, AccessControl {
     function _contributeETH(
         address _router,
         uint256 _amount,
-        uint256 _deadline,
-        bool isGtan
+        uint256 _deadline
     ) internal {
         require(msg.value == _amount, "Invalid ETH Value");
         require(_deadline > block.timestamp, "Invalid Deadline");
         uint256 commisionFee = getCommisionFee(_amount);
         _amount -= commisionFee;
-        convertUsdPrice(msg.sender, address(0), _amount, isGtan);
+        uint256 bnbPrice = getBNBPriceInUSD();
+        uint256 contributionInUSD = (_amount * bnbPrice) / 1e18;
+        convertUsdPrice(msg.sender, address(0), contributionInUSD);
 
         address wbnb = IPancakeRouter01(_router).WETH();
         if (
             address(wbnb) != address(projects[_projectId].saleDetails.pairToken)
         ) {
             address[] memory path = new address[](2);
-            path[0] = address(0);
+            path[0] = address(wbnb);
             path[1] = projects[_projectId].saleDetails.pairToken;
             uint256[] memory amounts = this.getMarketPrice(
                 _router,
@@ -1625,9 +1678,11 @@ contract GiantSale is Storage, AccessControl {
         _amount = this.getMarketPrice(_router, path, _amount)[1];
         uint256 bnbPrice = getBNBPriceInUSD();
         uint256 contributionInUSD = (_amount * bnbPrice) / 1e18;
-        convertUsdPrice(msg.sender, _token, contributionInUSD, true);
+        convertUsdPrice(msg.sender, _token, contributionInUSD);
 
-        if (
+        if (address(_token) ==  address(projects[_projectId].saleDetails.pairToken)) {
+            return ;
+        }else if (
             address(wbnb) != address(projects[_projectId].saleDetails.pairToken)
         ) {
             address[] memory _path = new address[](3);
@@ -1666,11 +1721,12 @@ contract GiantSale is Storage, AccessControl {
         uint256 _deadline,
         address wbnb
     ) internal {
-        convertUsdPrice(msg.sender, _token, _amount, false);
-
-        if (
+        convertUsdPrice(msg.sender, _token, _amount);
+        if (address(_token) == address(projects[_projectId].saleDetails.pairToken)) {
+            return ;
+        }else if (
             address(wbnb) != address(projects[_projectId].saleDetails.pairToken)
-        ) {
+        ) {        
             address[] memory _path = new address[](3);
             _path[0] = _token;
             _path[1] = wbnb;
@@ -1688,47 +1744,37 @@ contract GiantSale is Storage, AccessControl {
                 address(this),
                 _deadline
             );
+            return ;
         } else {
+            address[] memory path = new address[](2);
+            path[0] = _token;
+            path[1] = address(projects[_projectId].saleDetails.pairToken);
+
             IERC20(_token).safeIncreaseAllowance(_router, _amount);
             IPancakeRouter01(_router).swapExactTokensForETH(
                 _amount,
                 0,
-                new address[](2),
+                path,
                 address(this),
                 _deadline
             );
+            return ;
         }
     }
 
     function convertUsdPrice(
         address _user,
         address _token,
-        uint256 _amount,
-        bool isGtan
+        uint256 _amount
     ) internal {
-        UserDetails storage _userDetails = investorInfo[_projectId][_user];
-        LaunchRules storage _launchRules = presaleDetails[_projectId];
-        _userDetails.investedAsset.push(_token);
-        _userDetails.lastClaimTimestamp = block.timestamp;
-
-        if (_token != address(0)) {
-            if (!isGtan) {
-                if (
-                    _amount < _launchRules.minContribution ||
-                    _amount > _launchRules.maxContribution
-                ) revert MinMaxCollapse();
-                totalRaisedInUSD[_projectId] += _amount;
-                _userDetails.investedAmount.push(_amount);
-            }
-        }
-        uint256 bnbPrice = getBNBPriceInUSD();
-        uint256 contributionInUSD = (_amount * bnbPrice) / 1e18;
+        investorInfo[_projectId][_user].investedAsset.push(_token);
+        investorInfo[_projectId][_user].lastClaimTimestamp = block.timestamp;
         if (
-            contributionInUSD < _launchRules.minContribution ||
-            contributionInUSD > _launchRules.maxContribution
+            _amount < presaleDetails[_projectId].minContribution ||
+            _amount > presaleDetails[_projectId].maxContribution
         ) revert MinMaxCollapse();
-        totalRaisedInUSD[_projectId] += contributionInUSD;
-        _userDetails.investedAmount.push(contributionInUSD);
+        totalRaisedInUSD[_projectId] += _amount;
+        investorInfo[_projectId][_user].investedAmount.push(_amount);
         return;
     }
 
@@ -1855,6 +1901,8 @@ contract GiantSale is Storage, AccessControl {
         return uint256(price) * 1e10;
     }
 
+    
+
     function mixHash(
         address _user,
         uint256 _amount,
@@ -1928,8 +1976,6 @@ contract GiantpadFactory is AccessControl, Storage, Pausable {
                 SIGNER_ROLE,
                 validateSaleSignatureView(
                     _projectInfo,
-                    _launchRules,
-                    _platformFee,
                     sig
                 )
             ),
@@ -1957,13 +2003,14 @@ contract GiantpadFactory is AccessControl, Storage, Pausable {
         if (_commisionAsset == address(0)) {
             require(_commisionFee == msg.value, "invalid Commision Fee");
             payable(saleContract).transfer(_commisionFee);
-            return;
+        }else{
+            IERC20(_commisionAsset).safeTransferFrom(
+                msg.sender,
+                saleContract,
+                _commisionFee
+            );
         }
-        IERC20(_commisionAsset).safeTransferFrom(
-            msg.sender,
-            saleContract,
-            _commisionFee
-        );
+
         IERC20(_projectInfo.saleDetails.token).safeTransferFrom(
             msg.sender,
             saleContract,
@@ -1996,8 +2043,7 @@ contract GiantpadFactory is AccessControl, Storage, Pausable {
         //Checking Owner Address that isn't ZERO ADDRESS
         if (
             address(_projectInfo.owner) == address(0) ||
-            address(_projectInfo.saleDetails.token) == address(0) ||
-            address(_projectInfo.saleDetails.pairToken) == address(0)
+            address(_projectInfo.saleDetails.token) == address(0)
         ) revert NotZeroValue();
 
         if (msg.sender != _projectInfo.owner) revert("Invalid Owner");
@@ -2083,9 +2129,7 @@ contract GiantpadFactory is AccessControl, Storage, Pausable {
     }
 
     function mixHash(
-        ProjectInfo memory _projectInfo,
-        LaunchRules memory _launchRules,
-        PlatformFee memory _platformFee
+        ProjectInfo memory _projectInfo
     ) external pure returns (bytes32) {
         bytes32 hash = keccak256(
             abi.encodePacked(
@@ -2102,30 +2146,16 @@ contract GiantpadFactory is AccessControl, Storage, Pausable {
                 _projectInfo.totalAmount
             )
         );
-        hash = keccak256(
-            abi.encodePacked(
-                hash,
-                _projectInfo.claimTypeDetail.claimType,
-                _projectInfo.claimTypeDetail.vestRate,
-                _projectInfo.claimTypeDetail.vestingInterval,
-                _launchRules.tokenPriceinUSD,
-                _launchRules.minContribution,
-                _launchRules.maxContribution,
-                _platformFee.commisonFee,
-                _platformFee.projectPlatformFee
-            )
-        );
+
         return hash;
     }
 
     function validateSaleSignatureView(
         ProjectInfo memory _projectInfo,
-        LaunchRules memory _launchRules,
-        PlatformFee memory _platformFee,
         Sig memory sig
     ) public view returns (address) {
         require(
-            completed[this.mixHash(_projectInfo, _launchRules, _platformFee)] !=
+            completed[this.mixHash(_projectInfo)] !=
                 true,
             "Signature exist"
         );
@@ -2133,7 +2163,7 @@ contract GiantpadFactory is AccessControl, Storage, Pausable {
             revert("Incorrect bid signature");
         } else {
             return
-                this.mixHash(_projectInfo, _launchRules, _platformFee).recover(
+                this.mixHash(_projectInfo).recover(
                     sig.v,
                     sig.r,
                     sig.s
