@@ -1419,7 +1419,6 @@ contract GiantSale is Storage, AccessControl {
     bytes32 public constant PROJECT_OWNER_ROLE =
         keccak256("PROJECT_OWNER_ROLE");
     bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
-    address private _wbnb = 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9;
     mapping(bytes32 => bool) public completed; // 1.completed
 
     receive() external payable {}
@@ -1493,6 +1492,7 @@ contract GiantSale is Storage, AccessControl {
             "Liquidity Locked"
         );
         require(!projectOwnerDetails[msg.sender].isClaimed, "Already Claimed");
+        require(_amount == projectOwnerDetails[msg.sender].lpTokenOwned , "Amount Mismatches");
         require(
             hasRole(
                 SIGNER_ROLE,
@@ -1528,58 +1528,71 @@ contract GiantSale is Storage, AccessControl {
                 uint256 amountB = ( totalRaisedInUSD[_projectId] * _projectInfo.liqudityPercent) / 100e18;
         if (!isGtan) {
             if(address(wbnb) != address(_projectInfo.saleDetails.pairToken)){
+                _addLiquidity(_router, _token, _projectInfo.saleDetails.pairToken, amountA, amountB, wbnb, 2);
+                return ;
+            }else{
+                _addLiquidity(_router, _token, _projectInfo.saleDetails.pairToken, amountA, amountB, wbnb, 1);
+                return ;
+            }
+        }else{
+                _addLiquidity(_router, _token, _projectInfo.saleDetails.pairToken, amountA, amountB, wbnb, 0);
+                return ;
+        }
+    }
 
-                _projectInfo.totalAmount -= amountA;
-                totalRaisedInUSD[_projectId] -= amountB;
-                (,,uint256 liquidity) = IPancakeRouter01(_router).addLiquidity(
-                    _token,
-                    _projectInfo.saleDetails.pairToken,
-                    amountA,
-                    amountB,
-                    amountA,
-                    amountB,
+
+    function _addLiquidity(
+        address _router,
+        address _tokenA,
+        address _tokenB,
+        uint256 _amountA,
+        uint256 _amountB,
+        address _wbnb,
+        uint8 _flag
+    ) internal {
+        uint256 bnbPrice = getBNBPriceInUSD();
+        projects[_projectId].totalAmount -= _amountA;
+        totalRaisedInUSD[_projectId] -= _amountB;
+        uint256 bnbAmount = (_amountB * 1e18) / bnbPrice;
+        uint256 liquidity;
+        if (_flag == 0) {
+            address[] memory path = new address[](2);
+            path[0] = _wbnb;
+            path[1] = _tokenA;
+            _amountB = this.getMarketPrice(_router, path, bnbAmount)[1];
+             (,, liquidity) = IPancakeRouter01(_router).addLiquidity(
+                    _tokenA,
+                    _tokenB,
+                    _amountA,
+                    _amountB,
+                    _amountA,
+                    _amountB,
                     address(this),
                     block.timestamp + 60
                 );
-                projectOwnerDetails[_msgSender()].lpTokenOwned = liquidity;
-                projectOwnerDetails[_msgSender()].liquidityTimestamp = block.timestamp;
-            }else{
-                _projectInfo.totalAmount -= amountA;
-                totalRaisedInUSD[_projectId] -= amountB;
-                uint256 bnbPrice = getBNBPriceInUSD();
-                uint256 bnbAmount = (amountB * 1e18) / bnbPrice;
-                 (,,uint256 liquidity) = IPancakeRouter01(_router).addLiquidityETH{value:bnbAmount}(
-                    _token,
-                    amountA,
-                    amountA,
+        }else if(_flag == 1) {
+                 (,, liquidity) = IPancakeRouter01(_router).addLiquidityETH{value:bnbAmount}(
+                    _tokenA,
+                    _amountA,
+                    _amountA,
                     bnbAmount,
                     address(this),
                     block.timestamp + 60
                 );
-                projectOwnerDetails[_msgSender()].lpTokenOwned = liquidity;
-                projectOwnerDetails[_msgSender()].liquidityTimestamp = block.timestamp;
-
-            }
-        }else{
-            uint256 bnbPrice = getBNBPriceInUSD();
-            uint256 bnbAmount = (amountB * 1e18) / bnbPrice;
-            address[] memory path = new address[](2);
-            path[0] = wbnb;
-            path[1] = _token;
-            _amount = this.getMarketPrice(_router, path, bnbAmount)[1];
-             (,,uint256 liquidity) = IPancakeRouter01(_router).addLiquidity(
-                    _token,
-                    _projectInfo.saleDetails.pairToken,
-                    amountA,
-                    amountB,
-                    amountA,
-                    amountB,
+        }else {
+            (,, liquidity) = IPancakeRouter01(_router).addLiquidity(
+                    _tokenA,
+                    _tokenB,
+                    _amountA,
+                    _amountB,
+                    _amountA,
+                    _amountB,
                     address(this),
                     block.timestamp + 60
                 );
-                projectOwnerDetails[_msgSender()].lpTokenOwned = liquidity;
-                projectOwnerDetails[_msgSender()].liquidityTimestamp = block.timestamp;
         }
+        projectOwnerDetails[_msgSender()].lpTokenOwned = liquidity;
+        projectOwnerDetails[_msgSender()].liquidityTimestamp = block.timestamp;
     }
 
 
