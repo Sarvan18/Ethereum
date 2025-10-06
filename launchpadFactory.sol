@@ -57,10 +57,10 @@ interface IAccessControl {
     /**
      * @dev Returns `true` if `account` has been granted `role`.
      */
-    function hasRole(
-        bytes32 role,
-        address account
-    ) external view returns (bool);
+    function hasRole(bytes32 role, address account)
+        external
+        view
+        returns (bool);
 
     /**
      * @dev Returns the admin role that controls `role`. See {grantRole} and
@@ -179,10 +179,10 @@ interface IERC20 {
      *
      * This value changes when {approve} or {transferFrom} are called.
      */
-    function allowance(
-        address owner,
-        address spender
-    ) external view returns (uint256);
+    function allowance(address owner, address spender)
+        external
+        view
+        returns (uint256);
 
     /**
      * @dev Sets a `value` amount of tokens as the allowance of `spender` over the
@@ -316,10 +316,9 @@ interface IERC1363 is IERC20, IERC165 {
      * @param value The amount of tokens to be spent.
      * @return A boolean value indicating whether the operation succeeded unless throwing.
      */
-    function approveAndCall(
-        address spender,
-        uint256 value
-    ) external returns (bool);
+    function approveAndCall(address spender, uint256 value)
+        external
+        returns (bool);
 
     /**
      * @dev Sets a `value` amount of tokens as the allowance of `spender` over the
@@ -343,9 +342,7 @@ interface AggregatorV3Interface {
 
     function version() external view returns (uint256);
 
-    function getRoundData(
-        uint80 _roundId
-    )
+    function getRoundData(uint80 _roundId)
         external
         view
         returns (
@@ -382,7 +379,13 @@ interface IPancakeRouter01 {
         uint256 amountBMin,
         address to,
         uint256 deadline
-    ) external returns (uint256 amountA, uint256 amountB, uint256 liquidity);
+    )
+        external
+        returns (
+            uint256 amountA,
+            uint256 amountB,
+            uint256 liquidity
+        );
 
     function addLiquidityETH(
         address token,
@@ -394,7 +397,11 @@ interface IPancakeRouter01 {
     )
         external
         payable
-        returns (uint256 amountToken, uint256 amountETH, uint256 liquidity);
+        returns (
+            uint256 amountToken,
+            uint256 amountETH,
+            uint256 liquidity
+        );
 
     function removeLiquidity(
         address tokenA,
@@ -506,15 +513,15 @@ interface IPancakeRouter01 {
         uint256 reserveOut
     ) external pure returns (uint256 amountIn);
 
-    function getAmountsOut(
-        uint256 amountIn,
-        address[] calldata path
-    ) external view returns (uint256[] memory amounts);
+    function getAmountsOut(uint256 amountIn, address[] calldata path)
+        external
+        view
+        returns (uint256[] memory amounts);
 
-    function getAmountsIn(
-        uint256 amountOut,
-        address[] calldata path
-    ) external view returns (uint256[] memory amounts);
+    function getAmountsIn(uint256 amountOut, address[] calldata path)
+        external
+        view
+        returns (uint256[] memory amounts);
 }
 
 interface ILaunchpadError {
@@ -576,10 +583,11 @@ library Create2 {
      * @dev Returns the address where a contract will be stored if deployed via {deploy}. Any change in the
      * `bytecodeHash` or `salt` will result in a new destination address.
      */
-    function computeAddress(
-        bytes32 salt,
-        bytes32 bytecodeHash
-    ) internal view returns (address) {
+    function computeAddress(bytes32 salt, bytes32 bytecodeHash)
+        internal
+        view
+        returns (address)
+    {
         return computeAddress(salt, bytecodeHash, address(this));
     }
 
@@ -668,7 +676,11 @@ library SafeERC20 {
      * @dev Transfer `value` amount of `token` from the calling contract to `to`. If `token` returns no value,
      * non-reverting calls are assumed to be successful.
      */
-    function safeTransfer(IERC20 token, address to, uint256 value) internal {
+    function safeTransfer(
+        IERC20 token,
+        address to,
+        uint256 value
+    ) internal {
         _callOptionalReturn(token, abi.encodeCall(token.transfer, (to, value)));
     }
 
@@ -903,10 +915,10 @@ library SafeERC20 {
      *
      * This is a variant of {_callOptionalReturn} that silently catches all reverts and returns a bool instead.
      */
-    function _callOptionalReturnBool(
-        IERC20 token,
-        bytes memory data
-    ) private returns (bool) {
+    function _callOptionalReturnBool(IERC20 token, bytes memory data)
+        private
+        returns (bool)
+    {
         bool success;
         uint256 returnSize;
         uint256 returnValue;
@@ -987,6 +999,7 @@ library LaunchpadTypes {
     struct UserDetails {
         address[] investedAsset;
         uint256[] investedAmount;
+        uint256[] investedOriginalAmount;
         uint256 claimedAmount;
         bool claimed;
         uint256 lastClaimTimestamp;
@@ -1011,9 +1024,6 @@ library LaunchpadTypes {
         bytes32 r;
         bytes32 s;
     }
-
-
-
 }
 
 /**
@@ -1054,9 +1064,12 @@ abstract contract Context {
  */
 abstract contract ERC165 is IERC165 {
     /// @inheritdoc IERC165
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        returns (bool)
+    {
         return interfaceId == type(IERC165).interfaceId;
     }
 }
@@ -1120,9 +1133,13 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
     }
 
     /// @inheritdoc IERC165
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override
+        returns (bool)
+    {
         return
             interfaceId == type(IAccessControl).interfaceId ||
             super.supportsInterface(interfaceId);
@@ -1131,10 +1148,12 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
     /**
      * @dev Returns `true` if `account` has been granted `role`.
      */
-    function hasRole(
-        bytes32 role,
-        address account
-    ) public view virtual returns (bool) {
+    function hasRole(bytes32 role, address account)
+        public
+        view
+        virtual
+        returns (bool)
+    {
         return _roles[role].hasRole[account];
     }
 
@@ -1178,10 +1197,11 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
      *
      * May emit a {RoleGranted} event.
      */
-    function grantRole(
-        bytes32 role,
-        address account
-    ) public virtual onlyRole(getRoleAdmin(role)) {
+    function grantRole(bytes32 role, address account)
+        public
+        virtual
+        onlyRole(getRoleAdmin(role))
+    {
         _grantRole(role, account);
     }
 
@@ -1196,10 +1216,11 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
      *
      * May emit a {RoleRevoked} event.
      */
-    function revokeRole(
-        bytes32 role,
-        address account
-    ) public virtual onlyRole(getRoleAdmin(role)) {
+    function revokeRole(bytes32 role, address account)
+        public
+        virtual
+        onlyRole(getRoleAdmin(role))
+    {
         _revokeRole(role, account);
     }
 
@@ -1219,10 +1240,10 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
      *
      * May emit a {RoleRevoked} event.
      */
-    function renounceRole(
-        bytes32 role,
-        address callerConfirmation
-    ) public virtual {
+    function renounceRole(bytes32 role, address callerConfirmation)
+        public
+        virtual
+    {
         if (callerConfirmation != _msgSender()) {
             revert AccessControlBadConfirmation();
         }
@@ -1248,10 +1269,11 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
      *
      * May emit a {RoleGranted} event.
      */
-    function _grantRole(
-        bytes32 role,
-        address account
-    ) internal virtual returns (bool) {
+    function _grantRole(bytes32 role, address account)
+        internal
+        virtual
+        returns (bool)
+    {
         if (!hasRole(role, account)) {
             _roles[role].hasRole[account] = true;
             emit RoleGranted(role, account, _msgSender());
@@ -1268,10 +1290,11 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
      *
      * May emit a {RoleRevoked} event.
      */
-    function _revokeRole(
-        bytes32 role,
-        address account
-    ) internal virtual returns (bool) {
+    function _revokeRole(bytes32 role, address account)
+        internal
+        virtual
+        returns (bool)
+    {
         if (hasRole(role, account)) {
             _roles[role].hasRole[account] = false;
             emit RoleRevoked(role, account, _msgSender());
@@ -1381,9 +1404,7 @@ abstract contract Pausable is Context {
     }
 }
 
-
-
-contract GiantSale is  AccessControl , ILaunchpadError {
+contract GiantSale is AccessControl, ILaunchpadError {
     AggregatorV3Interface internal priceFeed;
 
     using SafeERC20 for IERC20;
@@ -1398,10 +1419,10 @@ contract GiantSale is  AccessControl , ILaunchpadError {
     mapping(uint256 => LaunchpadTypes.ProjectInfo) public projects;
     mapping(uint256 => LaunchpadTypes.LaunchRules) public presaleDetails;
     mapping(uint256 => uint256) public totalRaisedInUSD;
-    mapping(uint256 => mapping(address => LaunchpadTypes.UserDetails)) public investorInfo; // ProjectId → User → Contribution
+    mapping(uint256 => mapping(address => LaunchpadTypes.UserDetails))
+        public investorInfo; // ProjectId → User → Contribution
     mapping(address => LaunchpadTypes.ProjectOwner) public projectOwnerDetails;
     mapping(uint256 => LaunchpadTypes.PlatformFee) public platformFee;
-
 
     event UserContribution(
         address indexed user,
@@ -1835,14 +1856,17 @@ contract GiantSale is  AccessControl , ILaunchpadError {
         bool isVesting
     ) private {
         LaunchpadTypes.ProjectInfo storage project = projects[_projectId];
-        LaunchpadTypes.UserDetails storage userInfo = investorInfo[_projectId][msg.sender];
+        LaunchpadTypes.UserDetails storage userInfo = investorInfo[_projectId][
+            msg.sender
+        ];
         require(block.timestamp > project.saleDetails.endTime, "Sale Not End");
         require(userInfo.investedAmount.length > 0, "Not Contributed");
 
         uint256 userRewardAmount = this.calcReward(_user);
         if (!isVesting) {
             require(
-                project.claimTypeDetail.claimType == LaunchpadTypes.ClaimType.NormalClaim,
+                project.claimTypeDetail.claimType ==
+                    LaunchpadTypes.ClaimType.NormalClaim,
                 "Not Vesting Claim"
             );
             require(_amount <= userRewardAmount, "Amount Exceeds Reward");
@@ -1859,7 +1883,8 @@ contract GiantSale is  AccessControl , ILaunchpadError {
             return;
         }
         require(
-            project.claimTypeDetail.claimType == LaunchpadTypes.ClaimType.VestingClaim,
+            project.claimTypeDetail.claimType ==
+                LaunchpadTypes.ClaimType.VestingClaim,
             "Only Vesting Claim"
         );
 
@@ -1883,26 +1908,55 @@ contract GiantSale is  AccessControl , ILaunchpadError {
         updateUserForVesting(_user);
     }
 
+    function refund(address _token,address _user , uint256 _amount , uint256 _deadline ,LaunchpadTypes.Sig memory sig) external {
+        require(
+            hasRole(
+                SIGNER_ROLE,
+                validateSaleSignature(_user, _amount, _deadline, sig)
+            ),
+            "Sale : Invalid Signer"
+        );
+        require(_user == msg.sender , "Invalid User");
+        if (_token == address(0)) {
+            payable(_user).transfer(_amount);
+        }else{
+            IERC20(_token).safeTransfer(_user , _amount);
+        }
+    }
+
+    function burn() onlyRole(PROJECT_OWNER_ROLE) public  {
+        if (projects[_projectId].refundOption == LaunchpadTypes.RefundOption.Burn) {
+            uint256 allocatedForSale = projects[_projectId].saleDetails.allocationForSale;
+            IERC20(projects[_projectId].saleDetails.token).safeTransfer(0x000000000000000000000000000000000000dEaD , allocatedForSale);
+        }
+
+    }
+
     function calcReward(address _user) external view returns (uint256) {
         uint256 _userFund = this.getUserFund(_user);
         uint8 tokenDecimals = IERC20Metadata(
             projects[_projectId].saleDetails.token
         ).decimals();
 
-        if (projects[_projectId].saleDetails.saleType == LaunchpadTypes.SaleType.presale) {
-            return ((_userFund * 10 ** tokenDecimals) /
+        if (
+            projects[_projectId].saleDetails.saleType ==
+            LaunchpadTypes.SaleType.presale
+        ) {
+            return ((_userFund * 10**tokenDecimals) /
                 presaleDetails[_projectId].tokenPriceinUSD);
         } else {
             uint256 price = ((totalRaisedInUSD[_projectId] * 1e18) /
                 projects[_projectId].saleDetails.allocationForSale);
 
-            return ((_userFund * 10 ** tokenDecimals) / price);
+            return ((_userFund * 10**tokenDecimals) / price);
         }
     }
 
-    function getUserFund(
-        address user
-    ) external view returns (uint256 depositedFund) {
+    function getUserFund(address user)
+        external
+        view
+        returns (uint256 depositedFund)
+    {
         for (
             uint256 fund;
             fund < investorInfo[_projectId][user].investedAmount.length;
@@ -1923,10 +1977,11 @@ contract GiantSale is  AccessControl , ILaunchpadError {
         return (_amount * elapsed * rate) / 100e18;
     }
 
-    function getElapsed(
-        uint256 lastTimestamp,
-        uint256 vestInterval
-    ) internal view returns (uint256) {
+    function getElapsed(uint256 lastTimestamp, uint256 vestInterval)
+        internal
+        view
+        returns (uint256)
+    {
         return ((block.timestamp - lastTimestamp) / vestInterval);
     }
 
@@ -1999,7 +2054,7 @@ contract GiantSale is  AccessControl , ILaunchpadError {
     }
 }
 
-contract GiantpadFactory is AccessControl, Pausable , ILaunchpadError {
+contract GiantpadFactory is AccessControl, Pausable, ILaunchpadError {
     using BytesLibrary for bytes32;
     using SafeERC20 for IERC20;
 
@@ -2010,7 +2065,6 @@ contract GiantpadFactory is AccessControl, Pausable , ILaunchpadError {
     mapping(address => bool) private isTokenExists;
     mapping(bytes32 => bool) public completed; // 1.completed
     address[] public allLaunchpadContract;
-
 
     event SaleCreated(
         address indexed projectOwner,
@@ -2097,7 +2151,8 @@ contract GiantpadFactory is AccessControl, Pausable , ILaunchpadError {
     ) internal view returns (bool) {
         //Checking Sale Type that isn't INVALID OPTION
         if (
-            _projectInfo.saleDetails.saleType != LaunchpadTypes.SaleType.fairLaunch &&
+            _projectInfo.saleDetails.saleType !=
+            LaunchpadTypes.SaleType.fairLaunch &&
             _projectInfo.saleDetails.saleType != LaunchpadTypes.SaleType.presale
         ) revert InvalidOption();
 
@@ -2130,7 +2185,8 @@ contract GiantpadFactory is AccessControl, Pausable , ILaunchpadError {
         //Checking Refund Option that isn't INVALID OPTION
         if (
             _projectInfo.refundOption != LaunchpadTypes.RefundOption.Burn &&
-            _projectInfo.refundOption != LaunchpadTypes.RefundOption.ReturnToOwner
+            _projectInfo.refundOption !=
+            LaunchpadTypes.RefundOption.ReturnToOwner
         ) revert InvalidOption();
         //Checking Allocation Amount For Sale that isn't ZERO Value
         if (_projectInfo.saleDetails.allocationForSale <= 0)
@@ -2153,11 +2209,16 @@ contract GiantpadFactory is AccessControl, Pausable , ILaunchpadError {
         );
 
         if (
-            _projectInfo.claimTypeDetail.claimType != LaunchpadTypes.ClaimType.VestingClaim &&
-            _projectInfo.claimTypeDetail.claimType != LaunchpadTypes.ClaimType.NormalClaim
+            _projectInfo.claimTypeDetail.claimType !=
+            LaunchpadTypes.ClaimType.VestingClaim &&
+            _projectInfo.claimTypeDetail.claimType !=
+            LaunchpadTypes.ClaimType.NormalClaim
         ) revert InvalidOption();
 
-        if (_projectInfo.claimTypeDetail.claimType == LaunchpadTypes.ClaimType.VestingClaim) {
+        if (
+            _projectInfo.claimTypeDetail.claimType ==
+            LaunchpadTypes.ClaimType.VestingClaim
+        ) {
             if (
                 _projectInfo.claimTypeDetail.vestRate <= 0 ||
                 _projectInfo.claimTypeDetail.vestingInterval <= 0
@@ -2167,7 +2228,9 @@ contract GiantpadFactory is AccessControl, Pausable , ILaunchpadError {
         if (isTokenExists[_projectInfo.saleDetails.token])
             revert("Already Exists");
 
-        if (_projectInfo.saleDetails.saleType == LaunchpadTypes.SaleType.presale) {
+        if (
+            _projectInfo.saleDetails.saleType == LaunchpadTypes.SaleType.presale
+        ) {
             //Checking  Launch Rules that isn't ZERO Value
             if (
                 _launchRules.tokenPriceinUSD <= 0 ||
@@ -2192,9 +2255,11 @@ contract GiantpadFactory is AccessControl, Pausable , ILaunchpadError {
         }
     }
 
-    function mixHash(
-        LaunchpadTypes.ProjectInfo memory _projectInfo
-    ) external pure returns (bytes32) {
+    function mixHash(LaunchpadTypes.ProjectInfo memory _projectInfo)
+        external
+        pure
+        returns (bytes32)
+    {
         bytes32 hash = keccak256(
             abi.encodePacked(
                 _projectInfo.owner,
@@ -2229,22 +2294,27 @@ contract GiantpadFactory is AccessControl, Pausable , ILaunchpadError {
         }
     }
 
-    function getCreatedAddress(
-        address account,
-        uint256 index
-    ) external view returns (address) {
+    function getCreatedAddress(address account, uint256 index)
+        external
+        view
+        returns (address)
+    {
         return _factory[account][index];
     }
 
-    function getAllCreatedAddress(
-        address account
-    ) external view returns (address[] memory) {
+    function getAllCreatedAddress(address account)
+        external
+        view
+        returns (address[] memory)
+    {
         return _factory[account];
     }
 
-    function getProjectOwnerByIndex(
-        uint256 index
-    ) external view returns (address) {
+    function getProjectOwnerByIndex(uint256 index)
+        external
+        view
+        returns (address)
+    {
         return _projectOwners[index];
     }
 
